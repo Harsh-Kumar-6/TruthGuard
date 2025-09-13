@@ -1,0 +1,225 @@
+# import joblib
+# import requests
+# import re
+# from pathlib import Path
+# from PIL import Image
+# from urllib.parse import urlencode
+# from transformers import BlipProcessor, BlipForConditionalGeneration
+# from sentence_transformers import SentenceTransformer
+# import google.generativeai as genai
+# import datetime
+# import logging
+
+# # -----------------------------
+# # === Load pretrained models ===
+# # -----------------------------
+# processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+# blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+# sent_model = SentenceTransformer('all-MiniLM-L6-v2')
+# clf = joblib.load("classifier.pkl")
+
+# # -----------------------------
+# # === API Keys / Config ===
+# # -----------------------------
+# FACTCHECK_API_KEY = "f44a6802b042c740517ec8ec1e4d6c58a60da2d4"
+# BASE_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
+
+# genai.configure(api_key="AIzaSyBsAmgmy6_IUKLpvgRUAZMpu0nZ9m9K3Wg")
+# gemma_model = genai.GenerativeModel("gemini-2.5-flash")
+
+# NEWS_API_KEY = "ebeab8b4f22149c385d35e05422788d0"
+# NEWS_URL = "https://newsapi.org/v2/everything"
+
+# logging.basicConfig(level=logging.INFO)
+
+# # -----------------------------
+# # === Helper Functions ===
+# # -----------------------------
+# def image_to_caption(img_path: str) -> str:
+#     try:
+#         raw_image = Image.open(img_path).convert("RGB")
+#         inputs = processor(raw_image, return_tensors="pt")
+#         out = blip_model.generate(**inputs)
+#         return processor.decode(out[0], skip_special_tokens=True)
+#     except Exception as e:
+#         logging.warning(f"Image captioning failed: {e}")
+#         return ""
+
+# def classify_with_model(text: str):
+#     emb = sent_model.encode([text])
+#     pred = clf.predict(emb)[0]
+#     conf = max(clf.predict_proba(emb)[0])
+#     label = "trustworthy" if pred == 1 else "misinformation"
+#     return {"label": label, "confidence": conf}
+
+# def classify_with_gemma(text: str, news_context=None):
+#     try:
+#         context_str = ""
+#         if news_context:
+#             context_str = "Recent news:\n" + "\n".join(f"- {n['title']} ({n['source']})" for n in news_context)
+
+#         prompt = f"""
+#         You are a misinformation detection AI.
+#         Analyze the following text and:
+#         1. Classify it as either "trustworthy" or "misinformation or need verification".
+#         2. Give a detailed reason for your classification in the format that can be sent to json.
+#         3. if possible do a web search to find news articles that support or refute the claim from trusted souces.
+
+#         {context_str}
+#         Claim: {text}
+#         """
+#         resp = gemma_model.generate_content(prompt)
+#         raw_text = resp.text.strip().lower()
+
+#         label = "needs_verification"
+#         conf = 0.5
+#         if "misinformation" in raw_text:
+#             label = "misinformation"
+#             conf = 0.9
+#         elif "trustworthy" in raw_text:
+#             label = "trustworthy"
+#             conf = 0.9
+
+#         reason_match = re.split(r"\btrustworthy\b|\bmisinformation\b", resp.text, flags=re.IGNORECASE)
+#         reason = reason_match[-1].strip() if len(reason_match) > 1 else "No detailed reason provided."
+
+#         return {"label": label, "confidence": conf, "reason": reason, "news_context": news_context or []}
+
+#     except Exception as e:
+#         logging.warning(f"Gemma classification failed: {e}")
+#         return {"label": "needs_verification", "confidence": 0.5, "reason": f"Gemma failed: {e}", "news_context": []}
+
+# def factcheck_search(query: str, language_code="en", page_size=4):
+#     params = {
+#         "query": query,
+#         "languageCode": language_code,
+#         "pageSize": page_size,
+#         "key": FACTCHECK_API_KEY,
+#     }
+#     url = f"{BASE_URL}?{urlencode(params)}"
+#     try:
+#         r = requests.get(url)
+#         r.raise_for_status()
+#         data = r.json()
+#     except Exception as e:
+#         logging.warning(f"FactCheck API failed: {e}")
+#         return []
+
+#     results = []
+#     for c in data.get("claims", []):
+#         for r_ in c.get("claimReview", []):
+#             results.append({
+#                 "text": c.get("text"),
+#                 "claimDate": c.get("claimDate"),
+#                 "publisher": r_["publisher"]["name"],
+#                 "url": r_["url"],
+#                 "title": r_["title"],
+#                 "rating": r_["textualRating"]
+#             })
+#     return results
+
+# def verdict_to_score(verdict: str) -> float:
+#     if not verdict: return 0.5
+#     v = verdict.lower()
+#     positive = ["true", "correct", "mostly true"]
+#     negative = ["false", "fake", "pants on fire", "misleading"]
+#     if any(p in v for p in positive): return 1.0
+#     if any(n in v for n in negative): return 0.0
+#     return 0.5
+
+# def aggregate_factcheck(factchecks):
+#     if not factchecks: return 0.5
+#     scores = [verdict_to_score(fc.get("rating")) for fc in factchecks]
+#     if any(s == 0.0 for s in scores): return 0.0
+#     if any(s == 1.0 for s in scores): return 1.0
+#     return sum(scores) / len(scores)
+
+# def is_time_sensitive(text: str) -> bool:
+#     current_year = datetime.datetime.now().year
+#     if re.search(rf"\b{current_year}\b|\b{current_year-1}\b", text):
+#         return True
+#     if re.search(r"\b(today|yesterday|last week|this month|recently)\b", text, re.I):
+#         return True
+#     return False
+
+# def live_news_lookup(query: str, page_size=5):
+#     params = {"q": query, "apiKey": NEWS_API_KEY, "pageSize": page_size, "language": "en"}
+#     try:
+#         r = requests.get(NEWS_URL, params=params)
+#         r.raise_for_status()
+#         data = r.json()
+#         return [{"title": a["title"], "url": a["url"], "source": a["source"]["name"]} for a in data.get("articles", [])]
+#     except Exception as e:
+#         logging.warning(f"News API failed: {e}")
+#         return []
+
+# # -----------------------------
+# # === Main Pipeline ===
+# # -----------------------------
+# def analyze_text_image(text: str = "", image_path: str = None):
+#     # Step 1: Image → Caption
+#     caption = image_to_caption(image_path) if image_path else ""
+#     combined_text = (text + " " + caption).strip()
+
+#     # Step 2: Fact-check first
+#     fact_results = factcheck_search(combined_text)
+#     fact_score = aggregate_factcheck(fact_results)
+#     fact_label = "trustworthy" if fact_score == 1.0 else "misinformation" if fact_score == 0.0 else "needs_verification"
+
+#     # Step 3: Time-sensitive detection and news
+#     recent_claim = is_time_sensitive(combined_text)
+#     news_hits = live_news_lookup(combined_text) if recent_claim else []
+
+#     # Step 4: ML model classification
+#     model_out = classify_with_model(combined_text)
+
+#     # Step 5: Gemma classification (pass live news context)
+#     gemma_out = classify_with_gemma(combined_text, news_context=news_hits[:3] if news_hits else None)
+
+#     # Step 6: Decision rule
+#     if fact_label != "needs_verification":
+#         final_label = fact_label
+#         reason = f"Fact-check result → {fact_label}"
+#     elif recent_claim and news_hits:
+#         final_label = "trustworthy"
+#         reason = f"Recent claim verified by live news: {news_hits[0]['title']} ({news_hits[0]['source']})"
+#     else:
+#         # Dynamic weighted ensemble scoring
+#         w_model, w_gemma = 0.6, 0.4
+#         if recent_claim:
+#             w_gemma += 0.2
+#             w_model -= 0.2
+
+#         model_score = 1.0 if model_out["label"] == "trustworthy" else 0.0
+#         gemma_score = 1.0 if gemma_out["label"] == "trustworthy" else 0.0
+
+#         # Apply confidence
+#         w_model *= model_out["confidence"]
+#         w_gemma *= gemma_out["confidence"]
+
+#         total_weight = w_model + w_gemma
+#         score = (model_score * w_model + gemma_score * w_gemma) / total_weight if total_weight > 0 else 0.5
+
+#         if score >= 0.7:
+#             final_label = "trustworthy"
+#         elif score <= 0.3:
+#             final_label = "misinformation"
+#         else:
+#             final_label = "needs_verification"
+#         reason = f"Dynamic ensemble score={score:.2f}"
+
+#     # Step 7: Merge news (avoid duplicates)
+#     combined_news = news_hits.copy()
+#     for n in gemma_out.get("news_context", []):
+#         if n not in combined_news:
+#             combined_news.append(n)
+
+#     # Step 8: Return structured output
+#     return {
+#         "label": final_label,
+#         "model": model_out,
+#         "gemma": gemma_out,
+#         "fact_checks": fact_results[:4],
+#         "news": combined_news[:5],
+#         "reason": reason
+#     }
