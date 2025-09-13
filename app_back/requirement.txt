@@ -2,6 +2,11 @@ fastapi
 uvicorn[standard]
 gunicorn
 requests
+aiohttp
+joblib
+Pillow
+torch
+transformers
 sentence-transformers
 scikit-learn
 google-generativeai
