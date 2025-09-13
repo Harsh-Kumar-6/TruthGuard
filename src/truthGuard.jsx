@@ -342,10 +342,10 @@ const TruthGuard = () => {
   const canAnalyze = inputText.trim() || uploadedImage;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white" style={{ fontFamily: '"Inter", "Segoe UI", sans-serif' }}>
+    <div className="w-screen min-h-screen bg-gray-950 text-white overflow-x-hidden" style={{ fontFamily: '"Inter", "Segoe UI", sans-serif', margin: 0, padding: 0, width: '100vw' }}>
       {/* Header */}
-      <header className="border-b border-gray-800 px-6 py-4 bg-gray-950/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="w-full border-b border-gray-800 px-6 py-4 bg-gray-950/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/10 rounded-lg">
               <Shield className="w-6 h-6 text-green-400" />
@@ -361,24 +361,24 @@ const TruthGuard = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="w-full px-6 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 w-full">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-sm font-medium mb-6">
             <CheckCircle className="w-4 h-4" />
             Multi-Model AI Verification
           </div>
-          <h2 className="text-4xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
             Verify Claims with <span className="text-green-400">AI Precision</span>
           </h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <p className="text-gray-400 text-lg max-w-4xl mx-auto">
             Upload images or paste text to analyze for misinformation using advanced ML models, 
             fact-checking APIs, and real-time news verification.
           </p>
         </div>
 
         {/* Input Section */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="w-full mb-12 max-w-4xl mx-auto">
           <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-gray-800">
@@ -508,9 +508,9 @@ const TruthGuard = () => {
 
         {/* Results */}
         {analysisResults && !isAnalyzing && (
-          <div className="space-y-8">
+          <div className="w-full space-y-8">
             {analysisResults.error ? (
-              <div className="max-w-2xl mx-auto text-center">
+              <div className="w-full text-center">
                 <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
                   <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
                   <h3 className="text-lg font-semibold text-red-400 mb-2">Analysis Failed</h3>
@@ -520,8 +520,8 @@ const TruthGuard = () => {
             ) : (
               <>
                 {/* Main Result Card */}
-                <div className={`${getLabelStyle(analysisResults.label).bg} ${getLabelStyle(analysisResults.label).border} border rounded-2xl p-8`}>
-                  <div className="flex items-center justify-between">
+                <div className={`w-full ${getLabelStyle(analysisResults.label).bg} ${getLabelStyle(analysisResults.label).border} border rounded-2xl p-6 lg:p-8`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-gray-900/50 rounded-full">
                         {React.createElement(getLabelStyle(analysisResults.label).icon, {
@@ -572,7 +572,7 @@ const TruthGuard = () => {
                 </div>
 
                 {/* Two Column Analysis */}
-                <div className="grid lg:grid-cols-2 gap-8">
+                <div className="w-full grid lg:grid-cols-2 gap-8">
                   {/* Analysis Reasoning */}
                   <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-6">
@@ -699,7 +699,7 @@ const TruthGuard = () => {
 
                 {/* Fact Check Results */}
                 {analysisResults.fact_checks?.length > 0 && (
-                  <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-6">
+                  <div className="w-full bg-purple-900/20 border border-purple-500/30 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="p-2 bg-purple-500/20 rounded-lg">
                         <Shield className="w-5 h-5 text-purple-400" />
@@ -710,7 +710,7 @@ const TruthGuard = () => {
                       </span>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                       {analysisResults.fact_checks.map((check, idx) => (
                         <div key={idx} className="bg-gray-800/50 rounded-lg p-4">
                           <div className="flex items-start justify-between mb-3">
@@ -763,8 +763,8 @@ const TruthGuard = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-6 px-6 mt-16">
-        <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
+      <footer className="w-full border-t border-gray-800 py-6 px-6 mt-16">
+        <div className="w-full text-center text-gray-500 text-sm">
           <p>© 2025 TruthGuard • Advanced AI Fact Verification Platform</p>
         </div>
       </footer>
