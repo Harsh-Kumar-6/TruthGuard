@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Union
 from pathlib import Path
 import shutil, os
-from pipeline import analyze_text_image  # your pipeline function
+from .pipeline import analyze_text_image  # your pipeline function
 
 app = FastAPI(title="Misinformation Detection API")
 
