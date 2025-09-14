@@ -13,7 +13,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"], # your React dev URL
+    allow_origins= ["http://localhost:5173", "http://localhost:3000", "https://your-netlify-site.netlify.app"], # your React dev URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
