@@ -10,6 +10,7 @@ import aiohttp
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
+import os
 
 # -----------------------------
 # === Load pretrained models ===
@@ -17,7 +18,8 @@ import google.generativeai as genai
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 sent_model = SentenceTransformer('all-MiniLM-L6-v2')
-clf = joblib.load("classifier.pkl")
+BASE_DIR = os.path.dirname(__file__)
+clf = joblib.load(os.path.join(BASE_DIR, "classifier.pkl"))
 
 # -----------------------------
 # === API Keys / Config ===
